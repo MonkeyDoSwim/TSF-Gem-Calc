@@ -1,5 +1,9 @@
+import os
 import discord
 from discord.ext import commands
+
+# Fetch bot token from environment variables
+token = os.getenv('DISCORD_TOKEN')
 
 # Define intents
 intents = discord.Intents.default()  # Use the default intents (you can adjust based on your needs)
@@ -101,4 +105,4 @@ async def gem_damage(ctx):
         await ctx.send(f"An error occurred while trying to send the message: {e}")
 
 # Run the bot with your token
-bot.run('')  # Replace 'YOUR_BOT_TOKEN' with your bot's token
+bot.run(token)  # Use the token from the environment variable
