@@ -6,14 +6,13 @@ from discord.ext import commands
 token = os.getenv('DISCORD_TOKEN')
 
 # Define intents
-intents = discord.Intents.default()  # Use the default intents (you can adjust based on your needs)
+intents = discord.Intents.default()  # Use the default intents
 intents.message_content = True  # Enable message content intent
 
 # Create the bot instance with intents
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Define the channel ID where you want to send the messages
-# Replace this with the actual channel ID you copied earlier
 CHANNEL_ID = 1344200978785763380  # Replace with your channel ID
 
 @bot.event
@@ -21,88 +20,81 @@ async def on_ready():
     print(f'Bot logged in as {bot.user}')
 
     # Send a message when the bot is online
-    channel = bot.get_channel(CHANNEL_ID)  # Fetch the channel by ID
+    channel = bot.get_channel(CHANNEL_ID)
     if channel:
         await channel.send(f'{bot.user} is online and ready to calculate gem damage!')
 
-@bot.command(name='gem')  # Changed the command name from 'gemdmg' to 'gem'
+@bot.command(name='gem')  
 async def gem_damage(ctx):
+    # Send a welcome message
+    await ctx.send("Welcome to Damage Calculator Version 1.0.0. Please follow the prompts carefully to calculate gem damage.")
 
-    # Send a message before starting the inputs
-    await ctx.send("Welcome to Damage Calculator Version 1.0.0. This bot only calculates gem damage of a certain color gem Ex: Shredder's Purple Gems or Miz's Yellow Gems.\n\n Please also allow for an error in the gem damage of ± ~8000 (the higher the number is the less accurate this will be. But you will still get a good estimate of the gem damage per gem).\n\n Make sure you follow the prompts and enter the correct values for what it is asking, otherwise you might end up with a different number. Thanks!\n\n")
+    # List of inputs and prompts
+    prompts = [
+        ("Please input the base damage for your gem:", float),
+        ("Please input the trainer boost (percentage, e.g., 80 for 80%):", lambda x: float(x) / 100),
+        ("Please input the multiply trainer boost (percentage, e.g., 60 for 60%):", lambda x: float(x) / 100),
+        ("Please input the strap boost (percentage, e.g., 208 for 208%):", lambda x: float(x) / 100),
+        ("Please input the skill plate boost (percentage, e.g., 50 for 50%):", lambda x: float(x) / 100),
+        ("Please input the moment boost (percentage, e.g., 100 for 100%):", lambda x: float(x) / 100),
+        ("Please input any extra trainer damage (if any, otherwise input 0):", float),
+        ("Please input the gem buff from moves (percentage, e.g., 50 for 50%):", lambda x: float(x) / 100),
+        ("Please input the multiply gem strength (If no multiply gems input 1):", float)
+    ]
 
-    # Ask user for inputs one by one
-    await ctx.send("\n\nPlease input the base damage for your gem :")
-    base_damage_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    base_damage = float(base_damage_msg.content)
+    # Create a dictionary to store inputs
+    inputs = {}
 
-    await ctx.send("Please input the trainer boost (as a percentage, e.g., 80 for 80%):")
-    trainer_boost_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    trainer_boost = float(trainer_boost_msg.content) / 100  # Convert to decimal
+    # Loop through the prompts and gather user input
+    for prompt, conversion_func in prompts:
+        await ctx.send(prompt)
+        message = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
+        inputs[prompt] = conversion_func(message.content)
 
-    await ctx.send("Please input the multiply trainer boost (as a percentage, e.g., 60 for 60%):")
-    multiply_trainer_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    multiply_trainer_boost = float(multiply_trainer_msg.content) / 100  # Convert to decimal
+    # Calculate the damage
+    base_damage = inputs["Please input the base damage for your gem:"]
+    moment_boost = inputs["Please input the moment boost (percentage, e.g., 100 for 100%):"]
+    trainer_boost = inputs["Please input the trainer boost (percentage, e.g., 80 for 80%):"]
+    multiply_trainer_boost = inputs["Please input the multiply trainer boost (percentage, e.g., 60 for 60%):"]
+    strap_boost = inputs["Please input the strap boost (percentage, e.g., 208 for 208%):"]
+    skill_plate_boost = inputs["Please input the skill plate boost (percentage, e.g., 50 for 50%):"]
+    trainer_damage = inputs["Please input any extra trainer damage (if any, otherwise input 0):"]
+    gem_buff = inputs["Please input the gem buff from moves (percentage, e.g., 50 for 50%):"]
+    multiply_gem_strength = inputs["Please input the multiply gem strength (If no multiply gems input 1):"]
 
-    await ctx.send("Please input the strap boost (as a percentage, e.g., 208 for 208%):")
-    strap_boost_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    strap_boost = float(strap_boost_msg.content) / 100  # Convert to decimal
-
-    await ctx.send("Please input the skill plate boost (as a percentage, e.g., 50 for 50%):")
-    skill_plate_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    skill_plate_boost = float(skill_plate_msg.content) / 100  # Convert to decimal
-
-    await ctx.send("Please input the moment boost (as a percentage, e.g., 100 for 100%):")
-    moment_boost_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    moment_boost = float(moment_boost_msg.content) / 100  # Convert to decimal
-
-    await ctx.send("Please input any extra trainer damage (if any, otherwise input 0):")
-    trainer_damage_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    trainer_damage = float(trainer_damage_msg.content)
-
-    # Ask for the "Gem Buff from Moves" (as a percentage, e.g., 50 for 50%)
-    await ctx.send("Please input the gem buff from moves (as a percentage, e.g., 50 for 50%):")
-    gem_buff_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    gem_buff = float(gem_buff_msg.content) / 100  # Convert to decimal
-
-    # Step 1: Apply the Moment Boost
+    # Apply the Moment Boost
     moment_boosted_damage = base_damage + (base_damage * moment_boost)
 
-    # Step 2: Apply Trainer Boost
+    # Apply Trainer Boost
     trainer_boosted_damage = moment_boosted_damage * (1 + trainer_boost)
 
-    # Step 3: Apply Multiply Trainer Boost (this is applied to base damage)
+    # Apply Multiply Trainer Boost
     multiply_trainer_damage = base_damage * multiply_trainer_boost
 
-    # Step 4: Apply Strap Boost (this is applied to base damage)
+    # Apply Strap Boost
     strap_boost_damage = base_damage * strap_boost
 
-    # Step 5: Apply Skill Plate Boost (this is applied to base damage)
+    # Apply Skill Plate Boost
     skill_plate_damage = base_damage * skill_plate_boost
 
-    # Step 6: Calculate Total Damage before Gem Buff from Moves
+    # Calculate Total Damage before Gem Buff
     total_damage_before_buff = trainer_boosted_damage + multiply_trainer_damage + strap_boost_damage + skill_plate_damage + trainer_damage
 
-    # Step 7: Apply Gem Buff from Moves
+    # Apply Gem Buff from Moves
     total_damage_with_buff = total_damage_before_buff * (1 + gem_buff)
 
-    # Ask for the "Multiply Gem Strength" before calculating the final damage
-    await ctx.send("Please input the multiply gem strength (If no multiply gems input 1 otherwise you will get zero as your total):")
-    multiply_gem_strength_msg = await bot.wait_for('message', check=lambda m: m.author == ctx.author)
-    multiply_gem_strength = float(multiply_gem_strength_msg.content)
-
-    # Step 8: Apply Multiply Gem Strength to the total damage
+    # Apply Multiply Gem Strength to the total damage
     final_damage = total_damage_with_buff * multiply_gem_strength
 
-    # Sending result to the specified channel
+    # Send the result to the specified channel
     try:
-        channel = bot.get_channel(CHANNEL_ID)  # Fetch the channel by ID
+        channel = bot.get_channel(CHANNEL_ID)  
         if channel:
-            await channel.send(f"NOTE: THIS NUMBER DOES NOT TAKE INTO ACCOUNT OPPONENTS GEM DEFENSE\n\n Final Total Gem Damage: {final_damage}")
+            await channel.send(f"NOTE: THIS NUMBER DOES NOT TAKE INTO ACCOUNT OPPONENT'S GEM DEFENSE\n\nFinal Total Gem Damage: {final_damage}")
         else:
             await ctx.send("Error: Channel not found.")
     except Exception as e:
         await ctx.send(f"An error occurred while trying to send the message: {e}")
 
 # Run the bot with your token
-bot.run(token)  # Use the token from the environment variable
+bot.run(token)
