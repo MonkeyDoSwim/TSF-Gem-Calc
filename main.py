@@ -1,5 +1,5 @@
 import os
-import discord
+import discord 
 from discord.ext import commands
 
 # Fetch bot token from environment variables
